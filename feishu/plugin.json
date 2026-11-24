@@ -1,0 +1,73 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "feishu",
+  "version": "1.0.0",
+  "description": "Send Kettu notices to Feishu or Lark. Posts the notices you pick to a group as message cards, through a custom bot.",
+  "author": { "name": "Kettu" },
+  "homepage": "https://github.com/KettuAI/plugins/tree/main/feishu",
+  "repository": "https://github.com/KettuAI/plugins",
+  "license": "MIT",
+  "extensions": {
+    "sh.kettu": {
+      "format": 1,
+      "title": { "en": "Feishu / Lark notifications", "zh-CN": "飞书 / Lark 通知" },
+      "description": {
+        "en": "Send Kettu notices to Feishu or Lark. Posts the notices you pick to a group as message cards, through a custom bot.",
+        "zh-CN": "通过自定义机器人，把你选的 Kettu 通知以消息卡片发到飞书或 Lark 的群里。"
+      },
+      "script": "./sh.kettu/main.js",
+      "api": 1,
+      "permissions": ["network:open.feishu.cn", "network:open.larksuite.com", "sessions.content"],
+      "settings": [
+        {
+          "key": "webhook",
+          "type": "secret",
+          "title": "Webhook address",
+          "description": "The address of the group's custom bot, from open.feishu.cn or open.larksuite.com. Anyone who has it can post to the group, so it is kept in the key store."
+        },
+        {
+          "key": "signSecret",
+          "type": "secret",
+          "title": "Signature secret (optional)",
+          "description": "Only if you turned on signature verification for the bot."
+        },
+        {
+          "key": "keyword",
+          "type": "string",
+          "title": "Keyword (optional)",
+          "description": "Only if the bot requires a keyword. It is put in front of each card's title when the title lacks it."
+        }
+      ],
+      "channels": [
+        {
+          "id": "feishu",
+          "title": { "en": "Feishu or Lark group", "zh-CN": "飞书或 Lark 群" },
+          "description": {
+            "en": "Notices posted as cards to your group. They are not answered from there.",
+            "zh-CN": "以卡片发到你的群里的通知，不能在群里回答。"
+          }
+        }
+      ],
+      "views": [
+        {
+          "id": "status",
+          "kind": "actions",
+          "title": { "en": "Feishu / Lark", "zh-CN": "飞书 / Lark" },
+          "description": {
+            "en": "Where notices go, and a test card.",
+            "zh-CN": "通知发到哪里，以及测试卡片。"
+          },
+          "icon": "bell",
+          "pane": true
+        }
+      ],
+      "actions": [
+        {
+          "id": "test",
+          "title": { "en": "Send a test card to Feishu or Lark", "zh-CN": "向飞书或 Lark 发送测试卡片" },
+          "icon": "bell"
+        }
+      ]
+    }
+  }
+}
