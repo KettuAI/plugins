@@ -2,6 +2,7 @@
 // sees the fake: a new context holds the language's own builtins and nothing from Node or the web,
 // like the host's engine, and a value crosses the boundary as JSON text.
 
+import { randomBytes } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
@@ -85,6 +86,12 @@ export function loadPlugin(name, options = {}) {
       if (!reply) throw new Error(`No fake answer for ${sent.method} ${target}`)
       const text = typeof reply.body === 'string' ? reply.body : JSON.stringify(reply.body ?? {})
       return json({ status: reply.status ?? 200, headers: reply.headers ?? {}, body: text })
+    },
+    'random.bytes': (length) => {
+      if (!Number.isInteger(length) || length < 1 || length > 256) {
+        throw new Error('random.bytes takes 1 to 256 bytes')
+      }
+      return randomBytes(length).toString('hex')
     },
     'requests.answer': async (input) => {
       need('requests.answer')

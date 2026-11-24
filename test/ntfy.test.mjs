@@ -62,7 +62,7 @@ test('a notice goes to the generated topic, which is kept', async () => {
   await plugin.emit('channel.notice', { channel: 'ntfy', kind: 'error', title: 'Boom' })
   assert.equal(ntfy.topics.size, 1)
   const [topic, messages] = [...ntfy.topics][0]
-  assert.match(topic, /^kettu-[a-z0-9]{26}$/)
+  assert.match(topic, /^kettu-[0-9a-f]{26}$/)
   assert.equal(plugin.storage.get('topic'), topic)
   assert.deepEqual(
     messages.map((m) => [m.title, m.message, m.priority, m.tags, m.actions]),
@@ -110,7 +110,7 @@ test('a permission request carries buttons that post a secret to a separate topi
   assert.notEqual(replyTopic, topic)
   assert.equal(deny.url, allow.url)
   const nonce = allow.body.split(' ')[1]
-  assert.match(allow.body, /^allow [a-z0-9]{24}$/)
+  assert.match(allow.body, /^allow [0-9a-f]{24}$/)
   assert.equal(deny.body, `deny ${nonce}`)
   assert.ok(!sent.message.includes(nonce))
 })

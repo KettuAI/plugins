@@ -2,9 +2,8 @@
 
 const SERVER = 'https://ntfy.sh'
 const TOPIC = /^[-_A-Za-z0-9]{1,64}$/
-const ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789'
 const NONCE_CHARS = 24
-const ANSWER = new RegExp(`^(allow|deny) ([a-z0-9]{${NONCE_CHARS}})$`)
+const ANSWER = new RegExp(`^(allow|deny) ([0-9a-f]{${NONCE_CHARS}})$`)
 // ntfy.sh refills one request per 5 s, so polling stays under that while a reply is likely.
 const FAST_MS = 6_000
 const SLOW_MS = 20_000
@@ -64,12 +63,10 @@ async function words() {
   return (await kettu.call('app.locale')) === 'zh-CN' ? TEXT['zh-CN'] : TEXT.en
 }
 
-// The sandbox has no cryptographic random source, so this is the best it offers.
-/** @param {number} length */
-function randomText(length) {
-  let out = ''
-  for (let i = 0; i < length; i++) out += ALPHABET[Math.floor(Math.random() * ALPHABET.length)]
-  return out
+/** `length` lowercase hex characters from Kettu's cryptographic random source. @param {number} length */
+async function randomText(length) {
+  const hex = await kettu.call('random.bytes', Math.ceil(length / 2))
+  return hex.slice(0, length)
 }
 
 /** The topic the user set, else the one made and kept for them. */
@@ -83,7 +80,7 @@ async function topicName() {
   }
   const kept = await kettu.call('storage.get', 'topic')
   if (typeof kept === 'string' && TOPIC.test(kept)) return kept
-  const made = `kettu-${randomText(26)}`
+  const made = `kettu-${await randomText(26)}`
   await kettu.call('storage.set', 'topic', made)
   return made
 }
@@ -96,7 +93,7 @@ async function replyTopicFor(/** @type {string} */ topic) {
   if (kept && kept.topic === topic && typeof kept.reply === 'string' && TOPIC.test(kept.reply)) {
     return kept.reply
   }
-  const reply = `kettu-r-${randomText(26)}`
+  const reply = `kettu-r-${await randomText(26)}`
   await kettu.call('storage.set', 'reply', { topic, reply })
   return reply
 }
@@ -223,7 +220,7 @@ async function send(notice) {
   let nonce = ''
   let reply = ''
   if (request) {
-    nonce = randomText(NONCE_CHARS)
+    nonce = await randomText(NONCE_CHARS)
     reply = await replyTopicFor(topic)
     const what = request.command ? `$ ${request.command}` : request.paths.join('\n')
     out.message = clip([request.tool, what].filter(Boolean).join('\n'), 1000)
@@ -296,7 +293,7 @@ kettu.on('view.action', async ({ action }) => {
       return { notice: text.sent }
     }
     if (action === 'regenerate') {
-      const made = `kettu-${randomText(26)}`
+      const made = `kettu-${await randomText(26)}`
       await kettu.call('storage.set', 'topic', made)
       return { notice: `${text.regenerated}${made}` }
     }
