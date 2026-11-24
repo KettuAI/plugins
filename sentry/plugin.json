@@ -1,0 +1,133 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "sentry",
+  "version": "1.0.0",
+  "description": "Work with Sentry issues from Kettu. Mention them in a message, see them as references in replies, give agents tools to list, read and resolve issues, and browse unresolved issues beside the session.",
+  "author": { "name": "Kettu" },
+  "homepage": "https://github.com/KettuAI/plugins/tree/main/sentry",
+  "repository": "https://github.com/KettuAI/plugins",
+  "license": "MIT",
+  "extensions": {
+    "sh.kettu": {
+      "format": 1,
+      "title": { "en": "Sentry", "zh-CN": "Sentry" },
+      "description": {
+        "en": "Work with Sentry issues from Kettu. Mention them in a message, see them as references in replies, give agents tools to list, read and resolve issues, and browse unresolved issues beside the session.",
+        "zh-CN": "在消息里引用 Sentry issue，在回复里把它们显示为引用，让智能体列出、阅读并解决 issue，还能在会话旁浏览未解决的 issue。"
+      },
+      "script": "./sh.kettu/main.js",
+      "api": 1,
+      "permissions": ["network:sentry.io", "network:*.sentry.io", "tools", "prompt.attach"],
+      "settings": [
+        {
+          "key": "token",
+          "type": "secret",
+          "title": "Auth token",
+          "description": "An organization or personal token from Sentry's settings, with the scopes event:read and project:read, and event:write to resolve issues. It is sent to sentry.io and nowhere else."
+        },
+        {
+          "key": "organization",
+          "type": "string",
+          "title": "Organization slug",
+          "description": "The slug in your Sentry address, such as acme in acme.sentry.io."
+        },
+        {
+          "key": "region",
+          "type": "select",
+          "title": "Data region",
+          "description": "Where your organization's data is stored. Self-hosted Sentry is not supported.",
+          "default": "us",
+          "options": [
+            { "value": "us", "title": "United States (sentry.io)" },
+            { "value": "de", "title": "European Union (de.sentry.io)" }
+          ]
+        },
+        {
+          "key": "project",
+          "type": "string",
+          "title": "Project slug (optional)",
+          "description": "Limits the list, the tool and the @ menu to one project; leave it empty for all of them."
+        }
+      ],
+      "tools": [
+        {
+          "name": "list_issues",
+          "description": "Lists unresolved Sentry issues of the organization, newest activity first, one line each with its short id, level, title, event count and numeric id. The project can be named, else the one from the plugin settings applies.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "project": { "type": "string", "description": "The project's slug. All projects when left out and none is set in the plugin settings." },
+              "query": { "type": "string", "description": "A Sentry issue search such as \"is:unresolved level:error\". Unresolved issues when left out." },
+              "limit": { "type": "integer", "minimum": 1, "maximum": 25, "description": "How many issues to list, 10 by default." }
+            }
+          }
+        },
+        {
+          "name": "read_issue",
+          "description": "Reads one Sentry issue: its level, status, event and user counts, when it was first and last seen, and the stack trace of its latest event with the source lines of the application's own frames.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "description": "The issue's numeric id, its short id such as PROJ-1A, or its address on sentry.io." }
+            },
+            "required": ["id"]
+          }
+        },
+        {
+          "name": "resolve_issue",
+          "description": "Marks a Sentry issue as resolved. Sentry reopens it if the problem happens again.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "description": "The issue's numeric id, its short id such as PROJ-1A, or its address on sentry.io." }
+            },
+            "required": ["id"]
+          }
+        }
+      ],
+      "mentions": [
+        {
+          "id": "issues",
+          "title": { "en": "Sentry issues", "zh-CN": "Sentry issue" },
+          "icon": "bug"
+        }
+      ],
+      "links": [
+        {
+          "id": "issue",
+          "patterns": [
+            "https://sentry.io/organizations/{org}/issues/{issueId}/**",
+            "https://*.sentry.io/organizations/{org}/issues/{issueId}/**",
+            "https://*.sentry.io/issues/{issueId}/**"
+          ],
+          "icon": "bug"
+        }
+      ],
+      "views": [
+        {
+          "id": "issues",
+          "kind": "list",
+          "title": { "en": "Sentry issues", "zh-CN": "Sentry issue" },
+          "description": {
+            "en": "Unresolved issues of your organization.",
+            "zh-CN": "你的组织里尚未解决的 issue。"
+          },
+          "icon": "bug",
+          "pane": true
+        },
+        {
+          "id": "issue",
+          "kind": "detail",
+          "title": { "en": "Sentry issue", "zh-CN": "Sentry issue" }
+        }
+      ],
+      "actions": [
+        {
+          "id": "show-issues",
+          "title": { "en": "Show unresolved Sentry issues", "zh-CN": "查看未解决的 Sentry issue" },
+          "icon": "bug"
+        }
+      ]
+    }
+  }
+}
