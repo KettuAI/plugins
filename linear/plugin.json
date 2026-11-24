@@ -1,0 +1,127 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "linear",
+  "version": "1.0.0",
+  "description": "Work with Linear issues from Kettu. Mention them in a message, see them as references in replies, give agents tools to search, read, create and comment on issues, and list the issues assigned to you.",
+  "author": { "name": "Kettu" },
+  "homepage": "https://github.com/KettuAI/plugins/tree/main/linear",
+  "repository": "https://github.com/KettuAI/plugins",
+  "license": "MIT",
+  "extensions": {
+    "sh.kettu": {
+      "format": 1,
+      "title": { "en": "Linear", "zh-CN": "Linear" },
+      "description": {
+        "en": "Work with Linear issues from Kettu. Mention them in a message, see them as references in replies, give agents tools to search, read, create and comment on issues, and list the issues assigned to you.",
+        "zh-CN": "在消息里引用 Linear issue，在回复里把它们显示为引用，让智能体搜索、阅读、创建 issue 并评论，还能在会话旁列出分配给你的 issue。"
+      },
+      "script": "./sh.kettu/main.js",
+      "api": 1,
+      "permissions": ["network:api.linear.app", "network:linear.app", "tools", "prompt.attach"],
+      "settings": [
+        {
+          "key": "apiKey",
+          "type": "secret",
+          "title": "Personal API key",
+          "description": "Create one in Linear under Settings › Security & access. It is sent to api.linear.app and nowhere else. The tools that create and comment need a key that may write."
+        },
+        {
+          "key": "defaultTeam",
+          "type": "string",
+          "title": "Default team (optional)",
+          "description": "The key of the team new issues go to when the agent names none, such as ENG."
+        }
+      ],
+      "tools": [
+        {
+          "name": "search_issues",
+          "description": "Searches Linear issues by words, or finds one by its identifier such as ENG-123. Answers one line per issue with its identifier, state, title and team.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "query": { "type": "string", "description": "Words to search for, or an issue identifier such as ENG-123." },
+              "limit": { "type": "integer", "minimum": 1, "maximum": 25, "description": "How many issues to answer with, 10 by default." }
+            },
+            "required": ["query"]
+          }
+        },
+        {
+          "name": "read_issue",
+          "description": "Reads one Linear issue: its state, priority, team, assignee, labels, description and its newest comments.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "description": "The issue's identifier such as ENG-123, or the address of the issue on linear.app." }
+            },
+            "required": ["id"]
+          }
+        },
+        {
+          "name": "create_issue",
+          "description": "Creates a Linear issue in a team and answers with its identifier and address.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string", "description": "The issue's title." },
+              "description": { "type": "string", "description": "The issue's description, in Markdown." },
+              "team": { "type": "string", "description": "The key of the team, such as ENG. The default team from the plugin settings when left out." },
+              "priority": { "type": "integer", "minimum": 0, "maximum": 4, "description": "0 none, 1 urgent, 2 high, 3 medium, 4 low." }
+            },
+            "required": ["title"]
+          }
+        },
+        {
+          "name": "add_comment",
+          "description": "Adds a comment to a Linear issue and answers with the comment's address.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "description": "The issue's identifier such as ENG-123, or the address of the issue on linear.app." },
+              "body": { "type": "string", "description": "The comment, in Markdown." }
+            },
+            "required": ["id", "body"]
+          }
+        }
+      ],
+      "mentions": [
+        {
+          "id": "issues",
+          "title": { "en": "Linear issues", "zh-CN": "Linear issue" },
+          "icon": "tag"
+        }
+      ],
+      "links": [
+        {
+          "id": "issue",
+          "patterns": ["https://linear.app/*/issue/{identifier}/**"],
+          "icon": "tag"
+        }
+      ],
+      "views": [
+        {
+          "id": "assigned",
+          "kind": "list",
+          "title": { "en": "My Linear issues", "zh-CN": "我的 Linear issue" },
+          "description": {
+            "en": "Open issues assigned to you.",
+            "zh-CN": "分配给你、尚未完成的 issue。"
+          },
+          "icon": "tag",
+          "pane": true
+        },
+        {
+          "id": "issue",
+          "kind": "detail",
+          "title": { "en": "Linear issue", "zh-CN": "Linear issue" }
+        }
+      ],
+      "actions": [
+        {
+          "id": "show-assigned",
+          "title": { "en": "Show my Linear issues", "zh-CN": "查看我的 Linear issue" },
+          "icon": "tag"
+        }
+      ]
+    }
+  }
+}
