@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "types": [],
+    "module": "CommonJS",
+    "moduleDetection": "force",
+    "strict": true,
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "skipLibCheck": false
+  },
+  "files": ["types/index.d.ts"],
+  "include": ["*/sh.kettu/*.js"]
+}
