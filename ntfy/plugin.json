@@ -1,0 +1,67 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "ntfy",
+  "version": "1.0.0",
+  "description": "Send Kettu notices to ntfy. Sends the notices you pick to an ntfy topic on ntfy.sh, and lets you allow or deny a permission request from the notification.",
+  "author": { "name": "Kettu" },
+  "homepage": "https://github.com/KettuAI/plugins/tree/main/ntfy",
+  "repository": "https://github.com/KettuAI/plugins",
+  "license": "MIT",
+  "extensions": {
+    "sh.kettu": {
+      "format": 1,
+      "title": { "en": "ntfy", "zh-CN": "ntfy" },
+      "description": {
+        "en": "Send Kettu notices to ntfy. Sends the notices you pick to an ntfy topic on ntfy.sh, and lets you allow or deny a permission request from the notification.",
+        "zh-CN": "把你选的 Kettu 通知发到 ntfy.sh 上的一个 topic，权限请求可以直接在通知上回答。"
+      },
+      "script": "./sh.kettu/main.js",
+      "api": 1,
+      "permissions": ["network:ntfy.sh", "sessions.content", "requests.answer"],
+      "settings": [
+        {
+          "key": "topic",
+          "type": "string",
+          "title": "Topic",
+          "description": "Leave it empty to use the random topic the plugin makes, which the ntfy view shows. Letters, numbers, - and _, up to 64. Anyone who knows the topic can read your notices and answer requests, so keep it long."
+        },
+        {
+          "key": "token",
+          "type": "secret",
+          "title": "Access token (optional)",
+          "description": "Only for a topic protected on ntfy.sh. It is sent to ntfy.sh and nowhere else."
+        }
+      ],
+      "channels": [
+        {
+          "id": "ntfy",
+          "title": { "en": "ntfy topic", "zh-CN": "ntfy topic" },
+          "description": {
+            "en": "Notices sent to your ntfy topic.",
+            "zh-CN": "发到你的 ntfy topic 的通知。"
+          }
+        }
+      ],
+      "views": [
+        {
+          "id": "status",
+          "kind": "detail",
+          "title": { "en": "ntfy", "zh-CN": "ntfy" },
+          "description": {
+            "en": "The topic to subscribe to, and a test notice.",
+            "zh-CN": "要订阅的 topic，以及测试通知。"
+          },
+          "icon": "bell",
+          "pane": true
+        }
+      ],
+      "actions": [
+        {
+          "id": "test",
+          "title": { "en": "Send a test notice to ntfy", "zh-CN": "向 ntfy 发送测试通知" },
+          "icon": "bell"
+        }
+      ]
+    }
+  }
+}
