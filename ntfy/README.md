@@ -19,3 +19,5 @@ Keep in mind
 - The Allow and Deny buttons post to the reply topic without your token.
 - While a request waits the plugin checks the reply topic every few seconds, and less often after five minutes. It stops once the request is answered or after half an hour.
 - Only ntfy.sh is supported, not a server of your own.
+
+The ntfy logo belongs to its owner and is used here only to identify the service.

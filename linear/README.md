@@ -16,3 +16,5 @@ It may reach api.linear.app, with your key, and linear.app, whose addresses it n
 Keep in mind
 - It sees what your key sees. Linear allows 2,500 requests an hour per user; cards for issues are kept for a minute so a long reply does not use many.
 - Only issues of the workspace your key belongs to show as references.
+
+The Linear logo belongs to its owner and is used here only to identify the service.
