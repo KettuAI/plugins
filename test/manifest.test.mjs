@@ -68,6 +68,16 @@ for (const name of NAMES) {
     assert.deepEqual(Object.keys(plugin.exports).sort(), (entry.tools ?? []).map((tool) => tool.name).sort())
   })
 
+  test(`${name}: the icon is a square PNG the Marketplace shows`, () => {
+    const file = path.join(ROOT, name, 'assets', 'icon.png')
+    const data = readFileSync(file)
+    assert.deepEqual([...data.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+    assert.equal(data.toString('latin1', 12, 16), 'IHDR')
+    const [width, height] = [data.readUInt32BE(16), data.readUInt32BE(20)]
+    assert.ok(width === height && width >= 256 && width <= 1024, `${width} x ${height}`)
+    assert.ok(statSync(file).size <= 512 * 1024)
+  })
+
   test(`${name}: the README is plain text for the listing`, () => {
     const text = readFileSync(path.join(ROOT, name, 'README.md'), 'utf8')
     assert.ok(text.length > 200 && text.length <= 4000)

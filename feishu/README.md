@@ -16,3 +16,5 @@ Keep in mind
 - A card shows plain text: nothing in a notice is read as Markdown or as an @ mention.
 - The bot allows 5 requests a second and 100 a minute; the plugin spaces cards out to stay under it.
 - The signature uses this computer's clock. If the bot answers 19021, check that the clock is right.
+
+The Feishu / Lark logo belongs to its owner and is used here only to identify the service.

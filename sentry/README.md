@@ -16,3 +16,5 @@ It may reach sentry.io and its subdomains and nothing else, with your token. It 
 Keep in mind
 - Only Sentry's hosted service is supported, in the United States and European Union regions. A Sentry server you host yourself is not.
 - It sees what your token sees. Issue cards are kept for a minute.
+
+The Sentry logo belongs to its owner and is used here only to identify the service.
