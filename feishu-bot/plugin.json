@@ -1,0 +1,74 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "feishu-bot",
+  "version": "1.0.0",
+  "description": "Bidirectional Feishu / Lark Bot channel for Kettu Bots over the official WebSocket long connection with Interactive Card 2.0 replies.",
+  "author": { "name": "Kettu" },
+  "homepage": "https://github.com/KettuAI/plugins/tree/main/feishu-bot",
+  "repository": "https://github.com/KettuAI/plugins",
+  "license": "MIT",
+  "extensions": {
+    "sh.kettu": {
+      "format": 1,
+      "title": { "en": "Feishu / Lark Bot", "zh-CN": "飞书 / Lark Bot 渠道" },
+      "description": {
+        "en": "Bidirectional Feishu / Lark Bot channel over the official WebSocket long connection directly from this computer.",
+        "zh-CN": "通过飞书 / Lark 官方长连接，把飞书接入 Kettu Bots 并以互动卡片双向交互。"
+      },
+      "script": "./sh.kettu/main.js",
+      "api": 1,
+      "permissions": [
+        "bots.bridge",
+        "network:open.feishu.cn",
+        "network:open.larksuite.com",
+        "network:*.feishu.cn",
+        "network:*.larksuite.com"
+      ],
+      "settings": [
+        {
+          "key": "domain",
+          "type": "select",
+          "title": "Service region",
+          "description": "Choose Feishu (China) or Lark (International).",
+          "default": "feishu",
+          "options": [
+            { "value": "feishu", "title": "Feishu (CN)" },
+            { "value": "lark", "title": "Lark (Global)" }
+          ]
+        },
+        {
+          "key": "appId",
+          "type": "string",
+          "required": true,
+          "title": "App ID",
+          "description": "Feishu or Lark self-built application ID (starts with cli_)."
+        },
+        {
+          "key": "appSecret",
+          "type": "secret",
+          "required": true,
+          "title": "App Secret",
+          "description": "Application secret from the Feishu or Lark developer console. Stored in the system key store."
+        }
+      ],
+      "botChannels": [
+        {
+          "id": "feishu",
+          "shortLabel": "FS",
+          "title": { "en": "Feishu / Lark", "zh-CN": "飞书 / Lark" },
+          "description": {
+            "en": "Official Feishu/Lark WebSocket long connection directly from this computer.",
+            "zh-CN": "本机直连飞书 / Lark 官方长连接，无需公网回调地址。"
+          },
+          "howToAsk": "@{{handle}} <task>",
+          "capabilities": {
+            "direct": true,
+            "group": true,
+            "pairing": true,
+            "replyModes": ["summary", "full"]
+          }
+        }
+      ]
+    }
+  }
+}

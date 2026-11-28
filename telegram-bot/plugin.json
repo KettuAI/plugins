@@ -1,0 +1,50 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "telegram-bot",
+  "version": "1.0.0",
+  "description": "Bidirectional Telegram Bot channel for Kettu Bots over direct long polling. No public domain, webhook, or cloud relay required.",
+  "author": { "name": "Kettu" },
+  "homepage": "https://github.com/KettuAI/plugins/tree/main/telegram-bot",
+  "repository": "https://github.com/KettuAI/plugins",
+  "license": "MIT",
+  "extensions": {
+    "sh.kettu": {
+      "format": 1,
+      "title": { "en": "Telegram Bot", "zh-CN": "Telegram Bot 渠道" },
+      "description": {
+        "en": "Bidirectional Telegram Bot channel for Kettu Bots over direct long polling from this computer.",
+        "zh-CN": "通过本机直连长轮询，把 Telegram 接入 Kettu Bots 进行双向对话与任务分派。"
+      },
+      "script": "./sh.kettu/main.js",
+      "api": 1,
+      "permissions": ["bots.bridge", "network:api.telegram.org"],
+      "settings": [
+        {
+          "key": "botToken",
+          "type": "secret",
+          "required": true,
+          "title": "Bot token",
+          "description": "Token from @BotFather on Telegram. Stored in the system key store and shared across your Bots."
+        }
+      ],
+      "botChannels": [
+        {
+          "id": "telegram",
+          "shortLabel": "TG",
+          "title": { "en": "Telegram", "zh-CN": "Telegram" },
+          "description": {
+            "en": "Direct long polling from this computer — no public webhook or cloud relay needed.",
+            "zh-CN": "本机直连长轮询，无需公网域名或云端中转。"
+          },
+          "howToAsk": "@{{handle}} <task>",
+          "capabilities": {
+            "direct": true,
+            "group": true,
+            "pairing": true,
+            "replyModes": ["summary", "full"]
+          }
+        }
+      ]
+    }
+  }
+}

@@ -5,18 +5,19 @@ import { test } from 'node:test'
 import { loadPlugin } from '../test-support/harness.mjs'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
-const NAMES = ['ntfy', 'feishu', 'linear', 'sentry']
+const NAMES = ['ntfy', 'feishu', 'linear', 'sentry', 'telegram-bot', 'feishu-bot', 'github-bot', 'custom-bridge']
 const LISTENERS = {
   mentions: 'mention.search',
   links: 'link.card',
   channels: 'channel.notice',
+  botChannels: 'botChannel.start',
   views: 'view.data',
   actions: 'action.run',
 }
 
 const read = (name) => JSON.parse(readFileSync(path.join(ROOT, name, 'plugin.json'), 'utf8'))
 const entryOf = (name) => read(name).extensions['sh.kettu']
-const permission = /^(?:sessions\.summary|sessions\.content|sessions\.start|tools|prompt\.attach|requests\.check|requests\.answer|network:(?:\*\.)?(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63})$/
+const permission = /^(?:sessions\.summary|sessions\.content|sessions\.start|tools|prompt\.attach|requests\.check|requests\.answer|bots\.bridge|network\.custom|kettu\.connector|network:(?:\*\.)?(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63})$/
 
 test('the folders are the plugins the README lists', () => {
   const folders = readdirSync(ROOT).filter((name) => existsSync(path.join(ROOT, name, 'plugin.json')))
@@ -36,7 +37,7 @@ for (const name of NAMES) {
     assert.deepEqual([entry.format, entry.api, entry.script], [1, 1, './sh.kettu/main.js'])
     assert.ok(entry.permissions.every((p) => permission.test(p)), entry.permissions.join())
     for (const text of [entry.title, entry.description]) assert.deepEqual(Object.keys(text).sort(), ['en', 'zh-CN'])
-    for (const group of ['views', 'actions', 'mentions', 'channels']) {
+    for (const group of ['views', 'actions', 'mentions', 'channels', 'botChannels']) {
       for (const item of entry[group] ?? []) {
         assert.deepEqual(Object.keys(item.title).sort(), ['en', 'zh-CN'], `${group} ${item.id}`)
         if (item.description) assert.deepEqual(Object.keys(item.description).sort(), ['en', 'zh-CN'])
@@ -65,6 +66,12 @@ for (const name of NAMES) {
     }
     if ((entry.tools ?? []).length > 0) assert.ok(entry.permissions.includes('tools'))
     if ((entry.mentions ?? []).length > 0) assert.ok(entry.permissions.includes('prompt.attach'))
+    if ((entry.botChannels ?? []).length > 0) {
+      assert.ok(entry.permissions.includes('bots.bridge'))
+      for (const ev of ['botChannel.stop', 'botChannel.reply', 'botChannel.test']) {
+        assert.match(source, new RegExp(`kettu\\.on\\('${ev.replace('.', '\\.')}'`), `botChannels need ${ev}`)
+      }
+    }
     assert.deepEqual(Object.keys(plugin.exports).sort(), (entry.tools ?? []).map((tool) => tool.name).sort())
   })
 

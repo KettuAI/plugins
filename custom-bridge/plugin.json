@@ -1,0 +1,67 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "custom-bridge",
+  "version": "1.0.0",
+  "description": "Connect Kettu Bots to any self-hosted HTTP or WebSocket gateway such as internal chat tools, DingTalk, WeCom, Discord, Matrix, or custom scripts.",
+  "author": { "name": "Kettu" },
+  "homepage": "https://github.com/KettuAI/plugins/tree/main/custom-bridge",
+  "repository": "https://github.com/KettuAI/plugins",
+  "license": "MIT",
+  "extensions": {
+    "sh.kettu": {
+      "format": 1,
+      "title": { "en": "Custom Bridge", "zh-CN": "自定义桥接渠道" },
+      "description": {
+        "en": "Connect Kettu Bots to your own HTTP or WebSocket gateway using a simple JSON protocol.",
+        "zh-CN": "通过简洁的 JSON 协议，把 Kettu Bots 接入你自建的 HTTP 或 WebSocket 网关。"
+      },
+      "script": "./sh.kettu/main.js",
+      "api": 1,
+      "permissions": ["bots.bridge", "network.custom"],
+      "settings": [
+        {
+          "key": "endpoint",
+          "type": "url",
+          "required": true,
+          "title": "Bridge endpoint URL",
+          "description": "Base URL of your self-hosted bridge (for example http://127.0.0.1:8787 or https://bot.internal)."
+        },
+        {
+          "key": "token",
+          "type": "secret",
+          "title": "Bearer token (optional)",
+          "description": "Optional bearer token sent in the Authorization header. Stored in the system key store."
+        },
+        {
+          "key": "mode",
+          "type": "select",
+          "title": "Transport mode",
+          "description": "Receive inbound messages over WebSocket push or HTTP long polling.",
+          "default": "ws",
+          "options": [
+            { "value": "ws", "title": "WebSocket push (/ws)" },
+            { "value": "poll", "title": "HTTP polling (/poll)" }
+          ]
+        }
+      ],
+      "botChannels": [
+        {
+          "id": "custom",
+          "shortLabel": "API",
+          "title": { "en": "Custom Bridge", "zh-CN": "自定义桥接" },
+          "description": {
+            "en": "Connect Bots to any self-hosted HTTP or WebSocket gateway (internal IM, DingTalk, WeCom, Discord, Matrix, or scripts).",
+            "zh-CN": "将 Bot 接入任意自建 HTTP 或 WebSocket 网关（企业内网 IM、钉钉、企业微信、Discord、Matrix 等）。"
+          },
+          "howToAsk": "@{{handle}} <task>",
+          "capabilities": {
+            "direct": true,
+            "group": true,
+            "pairing": true,
+            "replyModes": ["summary", "full", "auto"]
+          }
+        }
+      ]
+    }
+  }
+}

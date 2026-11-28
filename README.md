@@ -10,6 +10,10 @@ These are published to the Kettu Marketplace by `kettu-labs`. In Kettu, open Mar
 | [Feishu / Lark](feishu/README.md)      | Posts the Kettu notices you pick to a Feishu or Lark group as message cards, through a custom bot, with signature verification.                                  |
 | [Linear](linear/README.md)             | Mention Linear issues, see them as references in replies, let agents search, read, create and comment on issues, and list the issues assigned to you.            |
 | [Sentry](sentry/README.md)             | Mention Sentry issues, see them as references in replies, let agents list, read and resolve issues, and browse unresolved issues beside the session.              |
+| [Telegram Bot](telegram-bot/README.md) | Bidirectional Telegram Bot channel for Kettu Bots over direct long polling — no public webhook or cloud relay needed.                                             |
+| [Feishu / Lark Bot](feishu-bot/README.md) | Bidirectional Feishu / Lark Bot channel for Kettu Bots over the official WebSocket long connection with Interactive Card 2.0 replies.                          |
+| [GitHub Bot](github-bot/README.md)     | Receives `@kettu-bots` mentions on GitHub Issues and PRs over Kettu Cloud Connector and posts replies back according to each Bot's policy.                        |
+| [Custom Bridge](custom-bridge/README.md) | Reference Bot channel plugin using `network.custom` to connect Kettu Bots to any self-hosted HTTP or WebSocket gateway.                                        |
 
 ## Writing one
 

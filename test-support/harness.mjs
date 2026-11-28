@@ -17,6 +17,20 @@ function covers(domain, host) {
   return host.endsWith(domain.slice(1)) && host.length > domain.length - 1
 }
 
+function customOrigin(raw) {
+  if (typeof raw !== 'string') return null
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+  try {
+    const parsed = new URL(trimmed)
+    if (!['http:', 'https:', 'ws:', 'wss:'].includes(parsed.protocol)) return null
+    const proto = parsed.protocol === 'ws:' ? 'http:' : parsed.protocol === 'wss:' ? 'https:' : parsed.protocol
+    return `${proto}//${parsed.host}`.toLowerCase()
+  } catch {
+    return null
+  }
+}
+
 /**
  * Loads `<root>/<name>/<script>` as the manifest names it.
  *
@@ -31,6 +45,7 @@ export function loadPlugin(name, options = {}) {
   const source = readFileSync(path.join(dir, entry.script), 'utf8')
   const permissions = entry.permissions ?? []
   const domains = permissions.filter((p) => p.startsWith('network:')).map((p) => p.slice(8))
+  const hasCustomNetwork = permissions.includes('network.custom')
   const declared = new Map((entry.settings ?? []).map((setting) => [setting.key, setting]))
 
   const settings = { ...options.settings }
@@ -39,11 +54,48 @@ export function loadPlugin(name, options = {}) {
   const listeners = new Map()
   const requests = []
   const answers = []
+  const inbounds = []
+  const channelStatuses = []
+  const wsSockets = new Map()
+  const wsSent = []
+  let nextSocketId = 1
   const logs = []
   const clock = { now: options.now ?? Date.UTC(2026, 10, 24, 12, 0, 0), timers: [], next: 1 }
 
   const need = (permission) => {
     if (!permissions.includes(permission)) throw new Error(`This call needs the permission "${permission}"`)
+  }
+
+  const customOrigins = () => {
+    if (!hasCustomNetwork) return []
+    const origins = []
+    for (const [key, setting] of declared.entries()) {
+      if (setting.type !== 'url') continue
+      const val = key in settings ? settings[key] : setting.default
+      const origin = customOrigin(val)
+      if (origin) origins.push(origin)
+    }
+    return origins
+  }
+
+  const assertAllowedUrl = (target, allowWs) => {
+    const url = new URL(target)
+    const proto = url.protocol
+    const isHttp = proto === 'https:' || proto === 'http:'
+    const isWs = proto === 'wss:' || proto === 'ws:'
+    if (!(allowWs ? isWs : isHttp)) {
+      throw new Error(allowWs ? 'Only ws/wss addresses can be reached' : 'Only https addresses can be reached')
+    }
+    const normalizedOrigin = `${proto === 'ws:' ? 'http:' : proto === 'wss:' ? 'https:' : proto}//${url.host}`.toLowerCase()
+    if (hasCustomNetwork && customOrigins().includes(normalizedOrigin)) return url
+    if (allowWs ? proto !== 'wss:' : proto !== 'https:') {
+      throw new Error(allowWs ? 'Only wss addresses can be reached' : 'Only https addresses can be reached')
+    }
+    if (url.port !== '' || url.username !== '') throw new Error('Only the default port can be reached')
+    if (!domains.some((domain) => covers(domain, url.hostname))) {
+      throw new Error(`${url.hostname} is not among the domains this plugin may reach (${domains.join(', ')})`)
+    }
+    return url
   }
 
   const calls = {
@@ -65,12 +117,7 @@ export function loadPlugin(name, options = {}) {
     'storage.delete': (key) => (storage.delete(key), null),
     'storage.keys': () => [...storage.keys()].sort(),
     'network.fetch': async (target, init = {}) => {
-      if (!target.startsWith('https://')) throw new Error('Only https addresses can be reached')
-      const url = new URL(target)
-      if (url.port !== '' || url.username !== '') throw new Error('Only the default https port can be reached')
-      if (!domains.some((domain) => covers(domain, url.hostname))) {
-        throw new Error(`${url.hostname} is not among the domains this plugin may reach (${domains.join(', ')})`)
-      }
+      assertAllowedUrl(target, false)
       const headers = Object.fromEntries(
         Object.entries(init.headers ?? {}).map(([key, value]) => [key.toLowerCase(), value]),
       )
@@ -80,12 +127,73 @@ export function loadPlugin(name, options = {}) {
       } catch {
         // A form or text body stays as sent.
       }
-      const sent = { url: target, method: init.method ?? 'GET', headers, body, raw: init.body }
+      const sent = {
+        url: target,
+        method: init.method ?? 'GET',
+        headers,
+        body,
+        raw: init.body,
+        timeoutMs: init.timeoutMs,
+      }
       requests.push(sent)
       const reply = await options.fetch?.(sent)
       if (!reply) throw new Error(`No fake answer for ${sent.method} ${target}`)
       const text = typeof reply.body === 'string' ? reply.body : JSON.stringify(reply.body ?? {})
       return json({ status: reply.status ?? 200, headers: reply.headers ?? {}, body: text })
+    },
+    'network.ws.open': async (opts = {}) => {
+      assertAllowedUrl(opts.url, true)
+      const id = `ws-${nextSocketId++}`
+      const record = { id, url: opts.url, headers: opts.headers ?? {}, open: true }
+      wsSockets.set(id, record)
+      await options.wsOpen?.(record)
+      return { id }
+    },
+    'network.ws.send': (opts = {}) => {
+      const record = wsSockets.get(opts.id)
+      if (!record || !record.open) throw new Error(`WebSocket ${opts.id} is not open`)
+      const frame = { id: opts.id, data: opts.data, encoding: opts.encoding ?? 'text' }
+      wsSent.push(frame)
+      options.wsSend?.(frame)
+      return null
+    },
+    'network.ws.close': (opts = {}) => {
+      const record = wsSockets.get(opts.id)
+      if (record) {
+        record.open = false
+        wsSockets.delete(opts.id)
+      }
+      return null
+    },
+    'bots.list': (opts = {}) => {
+      need('bots.bridge')
+      return json(
+        options.botsList?.(opts) ?? {
+          bots: [{ id: 'bot-1', handle: 'dev', name: 'Dev Bot', paused: false, isDefault: true, replyMode: null, scope: [] }],
+          defaultBotId: 'bot-1',
+        },
+      )
+    },
+    'bots.inbound': async (msg) => {
+      need('bots.bridge')
+      inbounds.push(json(msg))
+      return json((await options.inbound?.(msg)) ?? { accepted: true, action: 'routed', botId: 'bot-1' })
+    },
+    'bots.channelStatus': (status) => {
+      need('bots.bridge')
+      channelStatuses.push(json(status))
+      return null
+    },
+    'connector.session': async () => {
+      need('kettu.connector')
+      return json(
+        (await options.connectorSession?.()) ?? {
+          signedIn: true,
+          connectorUrl: 'https://connectors.kettu.sh',
+          hostId: 'host-test-1',
+          accessToken: 'tok-connector',
+        },
+      )
     },
     'random.bytes': (length) => {
       if (!Number.isInteger(length) || length < 1 || length > 256) {
@@ -142,6 +250,10 @@ export function loadPlugin(name, options = {}) {
     exports: module.exports,
     requests,
     answers,
+    inbounds,
+    channelStatuses,
+    wsSockets,
+    wsSent,
     logs,
     storage,
     clock,

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "github-bot",
+  "version": "1.0.0",
+  "description": "Connect Kettu Bots to GitHub Issues and Pull Requests via @kettu-bots mentions over an outbound WebSocket without storing code or prompts in the cloud.",
+  "author": { "name": "Kettu" },
+  "homepage": "https://github.com/KettuAI/plugins/tree/main/github-bot",
+  "repository": "https://github.com/KettuAI/plugins",
+  "license": "MIT",
+  "extensions": {
+    "sh.kettu": {
+      "format": 1,
+      "title": { "en": "GitHub Bot", "zh-CN": "GitHub Bot 渠道" },
+      "description": {
+        "en": "Receive @kettu-bots mentions on GitHub Issues and PRs over an outbound WebSocket and reply according to each Bot's policy.",
+        "zh-CN": "通过出站 WebSocket 接收 GitHub Issue 与 PR 中的 @kettu-bots 提及，并按策略回帖。"
+      },
+      "script": "./sh.kettu/main.js",
+      "api": 1,
+      "permissions": [
+        "bots.bridge",
+        "kettu.connector",
+        "network:connectors.kettu.sh",
+        "network.custom"
+      ],
+      "settings": [
+        {
+          "key": "connectorUrl",
+          "type": "url",
+          "title": "Connector URL (optional)",
+          "description": "Leave empty to use Kettu Cloud Connector (https://connectors.kettu.sh), or enter your self-hosted connector URL."
+        }
+      ],
+      "botChannels": [
+        {
+          "id": "github",
+          "shortLabel": "GH",
+          "title": { "en": "GitHub", "zh-CN": "GitHub" },
+          "description": {
+            "en": "Forwards @kettu-bots mentions on Issues and PRs over outbound WebSocket without storing code or prompts.",
+            "zh-CN": "通过出站 WebSocket 转发 @kettu-bots 提及，云端不落盘代码与提示词。"
+          },
+          "howToAsk": "@kettu-bots {{handle}} <task>",
+          "capabilities": {
+            "direct": false,
+            "group": true,
+            "pairing": false,
+            "scopes": true,
+            "replyModes": ["review_first", "auto", "kettu_only"]
+          }
+        }
+      ],
+      "views": [
+        {
+          "id": "status",
+          "kind": "actions",
+          "title": { "en": "GitHub Bot", "zh-CN": "GitHub Bot" },
+          "description": {
+            "en": "Cloud Connector connection state and linked GitHub account.",
+            "zh-CN": "Cloud Connector 连接状态与已绑定的 GitHub 账号。"
+          },
+          "icon": "pull-request",
+          "pane": true
+        }
+      ]
+    }
+  }
+}

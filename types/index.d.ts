@@ -52,6 +52,8 @@ export interface FetchInit {
   headers?: Record<string, string>
   /** Text of at most 256 KB; not for GET and HEAD. */
   body?: string
+  /** Request timeout in milliseconds (1,000 to 60,000; default 20,000). */
+  timeoutMs?: number
 }
 
 export interface FetchResponse {
@@ -60,6 +62,88 @@ export interface FetchResponse {
   headers: Record<string, string>
   /** At most 256 KB of UTF-8 text. */
   body: string
+}
+
+export type BotChannelConnectionState =
+  'off' | 'connecting' | 'connected' | 'reconnecting' | 'error'
+
+export type BotChannelReplyMode = 'review_first' | 'auto' | 'kettu_only' | 'summary' | 'full'
+
+export interface BotChannelBotSummary {
+  id: string
+  handle: string
+  name: string
+  paused: boolean
+  isDefault: boolean
+  replyMode: BotChannelReplyMode | null
+  scope: string[]
+}
+
+export interface BotInboundInput {
+  /** Manifest `botChannels[].id`. */
+  channel: string
+  /** Unique platform delivery/message identifier for 24h idempotent deduplication. */
+  dedupId: string
+  /** Chat room, direct conversation, or repository (`owner/repo`). */
+  chatId: string
+  /** Isolated thread key (topic, root_id, issue/PR number); null for direct owner DM. */
+  threadId?: string | null
+  /** Original message or comment ID used for threaded replies. */
+  messageId?: string | null
+  /** Immutable platform sender ID (never display name). */
+  senderId: string
+  /** Human-readable sender label for UI display only. */
+  senderLabel: string
+  /** True for private owner DM; false for group mentions or webhook events. */
+  isDirect: boolean
+  /** Message body (leading `@handle` or `/handle` routes to that Bot automatically). */
+  text: string
+  /** Optional explicit Bot handle already parsed by the plugin. */
+  botHandle?: string | null
+  /** Optional link back to the external issue, PR or chat thread. */
+  externalUrl?: string | null
+  /** Optional platform delivery/reply reference echoed back on `botChannel.reply`. */
+  deliveryId?: string | null
+  /** Optional scope identifier (such as `owner/repo`) matched against Bot channel scopes. */
+  scope?: string | null
+}
+
+export interface BotInboundResult {
+  accepted: boolean
+  action: 'routed' | 'paired' | 'command' | 'ignored' | 'deduped'
+  botId?: string
+  reason?: string
+}
+
+export interface BotChannelReplyEvent {
+  channel: string
+  botId: string
+  botName: string
+  botHandle: string
+  chatId: string
+  threadId: string | null
+  messageId: string | null
+  deliveryId: string | null
+  replyMode: BotChannelReplyMode
+  payload: {
+    title?: string
+    body: string
+    status?: 'accepted' | 'running' | 'waiting_user' | 'done' | 'failed'
+    meta?: string
+  }
+}
+
+export interface BotChannelTestResult {
+  ok: boolean
+  label?: string
+  error?: string
+}
+
+export interface ConnectorSessionResult {
+  signedIn: boolean
+  connectorUrl: string
+  hostId: string
+  accessToken: string | null
 }
 
 /** Every call by name, with its arguments and what it resolves to. */
@@ -83,6 +167,13 @@ export interface KettuCalls {
    * for. `length` is a whole number of 1 to 256.
    */
   'random.bytes': { args: [length: number]; result: string }
+  /**
+   * Keeps one line about the plugin that the user sees under its name, such as who it is signed in
+   * as or that a key was refused, until the next call sets another; null or an empty text clears
+   * it. Plain text of at most 120 characters, its line breaks and runs of spaces folded into one
+   * space; a longer one fails. The plugin's state that Kettu judges never follows it.
+   */
+  'status.set': { args: [text: string | null]; result: null }
   /**
    * The plugin's own storage, kept on the host and removed with the plugin: a value is any JSON,
    * null for a key not set. All of it holds at most 256 KB of JSON and 1,000 keys of at most 128
@@ -136,6 +227,56 @@ export interface KettuCalls {
   'requests.answer': {
     args: [options: { request: string; decision: 'allow_once' | 'deny'; from?: string }]
     result: { request: string; decision: 'allow_once' | 'deny' }
+  }
+  /**
+   * Needs `network:<domain>` (or `network.custom` matching a user-configured URL setting).
+   * Opens a host-managed WebSocket connection (at most 4 sockets per plugin).
+   */
+  'network.ws.open': {
+    args: [options: { url: string; headers?: Record<string, string>; protocols?: string[] }]
+    result: { id: string }
+  }
+  /** Sends a text or base64-encoded binary frame on an open managed WebSocket. */
+  'network.ws.send': {
+    args: [options: { id: string; data: string; encoding?: 'text' | 'base64' }]
+    result: null
+  }
+  /** Closes a managed WebSocket connection. */
+  'network.ws.close': {
+    args: [options: { id: string; code?: number; reason?: string }]
+    result: null
+  }
+  /** Needs `bots.bridge`: lists Bots currently enabled for one of this plugin's Bot channels. */
+  'bots.list': {
+    args: [options: { channel: string }]
+    result: { bots: BotChannelBotSummary[]; defaultBotId: string | null }
+  }
+  /**
+   * Needs `bots.bridge`: delivers a normalized external message to Kettu's Bot router. Kettu
+   * handles `/pair` owner binding, 24h deduplication, `@handle` routing and guardrails.
+   */
+  'bots.inbound': {
+    args: [message: BotInboundInput]
+    result: BotInboundResult
+  }
+  /** Needs `bots.bridge`: reports the live connection state of a declared Bot channel. */
+  'bots.channelStatus': {
+    args: [
+      options: {
+        channel: string
+        state: BotChannelConnectionState
+        detail?: string | null
+      },
+    ]
+    result: null
+  }
+  /**
+   * Needs `kettu.connector`: returns the current Kettu Cloud Connector endpoint, hostId and
+   * account bearer token for connecting to connectors.kettu.sh.
+   */
+  'connector.session': {
+    args: []
+    result: ConnectorSessionResult
   }
 }
 
@@ -270,7 +411,7 @@ export interface ViewRow {
   id: string
   /** At most 200 characters. */
   title: string
-  /** At most 300 characters. */
+  /** At most 300 characters; line breaks are kept, up to three lines shown. */
   subtitle?: string
   /** The subtitle in the code face. */
   mono?: boolean
@@ -292,10 +433,11 @@ export interface ListViewData extends ViewCommon {
 /** For a view of kind `detail`. */
 export interface DetailViewData extends ViewCommon {
   title?: string
+  /** Line breaks are kept. */
   subtitle?: string
   icon?: ViewIcon
   badges?: ViewBadge[]
-  /** Up to 50 labels with values of at most 500 characters. */
+  /** Up to 50 labels with values of at most 500 characters; line breaks in a value are kept. */
   fields?: { label: string; value: string; mono?: boolean }[]
   /** Plain Markdown of at most 20,000 characters, drawn as a reply is; HTML is not drawn. */
   body?: string
@@ -578,7 +720,8 @@ export interface KettuEvents {
    * A hook that needs no permission, for a source the manifest declares under `mentions`, which
    * needs `prompt.attach`: the user typed an `@` in the composer. The first listener that returns
    * items answers; the menu shows them in a group of the plugin's own, beside the project's files,
-   * and never waits for it. A listener that is not done in 3 seconds is skipped.
+   * and never waits for it. A listener that is not done in 3 seconds is skipped. When none returns
+   * items and one threw, the menu shows its message, as plain text cut at 300 characters.
    */
   'mention.search': MentionSearchRequest
   /**
@@ -592,9 +735,23 @@ export interface KettuEvents {
    * A hook for a link the manifest declares under `links`, whose patterns name only hosts the
    * plugin has `network:` access to: a reply holds an address of that kind and is on screen. The
    * first listener that returns a card answers; replies draw the link as a reference with that
-   * card on hover. A listener that is not done in 3 seconds is skipped and the link stays plain.
+   * card on hover. A listener that is not done in 3 seconds is skipped and the link stays plain; one
+   * that throws leaves it plain too, and its message, cut at 300 characters, shows on hover.
    */
   'link.card': LinkCardRequest
+  /** Needs `bots.bridge`: start maintaining the connection for this Bot channel. */
+  'botChannel.start': { channel: string }
+  /** Needs `bots.bridge`: stop the connection for this Bot channel. */
+  'botChannel.stop': { channel: string }
+  /** Needs `bots.bridge`: deliver an outbound Bot reply or Routine failure alert back to the platform. */
+  'botChannel.reply': BotChannelReplyEvent
+  /** Needs `bots.bridge`: hook called when the user clicks Test connection on this Bot channel. */
+  'botChannel.test': { channel: string }
+  /** Managed WebSocket lifecycle events. */
+  'network.ws.open': { id: string }
+  'network.ws.message': { id: string; data: string; encoding: 'text' | 'base64' }
+  'network.ws.close': { id: string; code: number; reason: string }
+  'network.ws.error': { id: string; message: string }
 }
 
 export interface Attachment {
@@ -617,6 +774,7 @@ export interface KettuHookResults {
   'mention.search': MentionSearchResult | void
   'mention.content': MentionContent | void
   'link.card': LinkCard | void
+  'botChannel.test': BotChannelTestResult | void
 }
 
 /**
